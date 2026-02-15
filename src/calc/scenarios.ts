@@ -81,8 +81,8 @@ export function computeAllScenarios(inputs: CalculatorInputs): ScenarioResult[] 
   };
   scenarios.push(currentExtra);
 
-  // Scenario 3: Current + recast (if recast date is set)
-  if (paymentSettings.recastDate) {
+  // Scenario 3: Current + recast (if recast is enabled)
+  if (paymentSettings.enableRecast && paymentSettings.recastDate) {
     // Recast (base) - without extra principal
     const currentRecastBaseSchedule = generateSchedule({
       startDate: currentLoan.currentDate,

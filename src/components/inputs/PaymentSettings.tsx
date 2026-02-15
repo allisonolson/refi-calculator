@@ -13,13 +13,17 @@ interface PaymentSettingsProps {
 
 export function PaymentSettingsComponent({ values, onChange }: PaymentSettingsProps) {
   function toggleRecast() {
-    if (values.recastDate) {
-      onChange({ ...values, recastDate: undefined, loanMaturityDate: undefined });
+    if (values.enableRecast) {
+      // Just disable, but keep the values
+      onChange({ ...values, enableRecast: false });
     } else {
-      const defaultMaturityDate = format(addMonths(new Date(), 300), 'yyyy-MM-dd'); // ~25 years
+      // Enable and set defaults if values don't exist
+      const defaultRecastDate = values.recastDate || new Date().toISOString().split('T')[0];
+      const defaultMaturityDate = values.loanMaturityDate || format(addMonths(new Date(), 300), 'yyyy-MM-dd');
       onChange({
         ...values,
-        recastDate: new Date().toISOString().split('T')[0],
+        enableRecast: true,
+        recastDate: defaultRecastDate,
         loanMaturityDate: defaultMaturityDate
       });
     }
@@ -37,7 +41,7 @@ export function PaymentSettingsComponent({ values, onChange }: PaymentSettingsPr
     <Card title="Payment Settings">
       <Stack gap={4}>
         <Checkbox.Root
-          checked={!!values.recastDate}
+          checked={!!values.enableRecast}
           onCheckedChange={toggleRecast}
         >
           <Checkbox.HiddenInput />
@@ -45,7 +49,7 @@ export function PaymentSettingsComponent({ values, onChange }: PaymentSettingsPr
           <Checkbox.Label>Enable Recast</Checkbox.Label>
         </Checkbox.Root>
 
-        {values.recastDate && (
+        {values.enableRecast && (
           <Box>
             <Field.Root>
               <Field.Label>Recast Date</Field.Label>

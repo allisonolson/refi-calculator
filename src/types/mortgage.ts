@@ -22,6 +22,7 @@ export interface RefinanceOption {
 }
 
 export interface PaymentSettings {
+  enableRecast?: boolean;         // whether recast is enabled
   recastDate?: string;            // optional YYYY-MM-DD
   loanMaturityDate?: string;      // optional YYYY-MM-DD, used for recast term calculation
   desiredMonthlyPayment?: number; // optional target payment

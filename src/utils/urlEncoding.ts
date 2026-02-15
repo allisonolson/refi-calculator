@@ -29,6 +29,7 @@ interface CompactData {
   l?: CompactLumpSum[];    // lumpSums (optional if empty)
   o?: CompactRefiOption[]; // refinanceOptions (optional if empty)
   s?: {          // paymentSettings (optional if empty)
+    e?: boolean; // enableRecast
     r?: string;  // recastDate
     m?: string;  // loanMaturityDate
   };
@@ -77,9 +78,12 @@ function toCompact(inputs: CalculatorInputs): CompactData {
   }
 
   // Only include paymentSettings if has values
-  const hasSettings = inputs.paymentSettings.recastDate || inputs.paymentSettings.loanMaturityDate;
+  const hasSettings = inputs.paymentSettings.enableRecast || inputs.paymentSettings.recastDate || inputs.paymentSettings.loanMaturityDate;
   if (hasSettings) {
     compact.s = {};
+    if (inputs.paymentSettings.enableRecast) {
+      compact.s.e = inputs.paymentSettings.enableRecast;
+    }
     if (inputs.paymentSettings.recastDate) {
       compact.s.r = inputs.paymentSettings.recastDate;
     }
@@ -117,6 +121,7 @@ function fromCompact(compact: CompactData): CalculatorInputs {
       desiredMonthlyPayment: refi.p
     })),
     paymentSettings: {
+      enableRecast: compact.s?.e,
       recastDate: compact.s?.r,
       loanMaturityDate: compact.s?.m
     }
