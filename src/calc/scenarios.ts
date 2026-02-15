@@ -83,36 +83,67 @@ export function computeAllScenarios(inputs: CalculatorInputs): ScenarioResult[] 
 
   // Scenario 3: Current + recast (if recast date is set)
   if (paymentSettings.recastDate) {
-    const currentRecastSchedule = generateSchedule({
+    // Recast (base) - without extra principal
+    const currentRecastBaseSchedule = generateSchedule({
       startDate: currentLoan.currentDate,
       startingBalance: currentLoan.principal,
       annualRate: currentLoan.annualRate,
       basePayment: currentLoan.monthlyPayment,
-      extraMonthlyPrincipal: currentLoan.extraMonthlyPrincipal,
+      extraMonthlyPrincipal: 0,
       lumpSums: lumpSums,
       recastDate: paymentSettings.recastDate,
       termMonths: remainingMonths
     });
 
     // Find the recast payment (base payment after recast date)
-    const recastRow = currentRecastSchedule.find(row => row.date >= paymentSettings.recastDate!);
-    const recastPayment = recastRow?.payment || currentLoan.monthlyPayment;
+    const recastRowBase = currentRecastBaseSchedule.find(row => row.date >= paymentSettings.recastDate!);
+    const recastPayment = recastRowBase?.payment || currentLoan.monthlyPayment;
 
-    const currentRecast: ScenarioResult = {
-      id: 'current-recast',
-      label: 'Current + recast',
+    const currentRecastBase: ScenarioResult = {
+      id: 'current-recast-base',
+      label: 'Current + recast (base)',
       basePayment: recastPayment,
-      effectivePayment: recastPayment + currentLoan.extraMonthlyPrincipal,
-      totalInterest: calculateTotalInterest(currentRecastSchedule),
-      totalPaid: calculateTotalPaid(currentRecastSchedule),
-      monthsToPayoff: currentRecastSchedule.length,
-      payoffDate: currentRecastSchedule[currentRecastSchedule.length - 1]?.date || '',
-      payoffLabel: formatDuration(currentRecastSchedule.length),
-      interestSavingsVsCurrentBase: currentBase.totalInterest - calculateTotalInterest(currentRecastSchedule),
-      interestSavingsVsCurrentExtra: currentExtra.totalInterest - calculateTotalInterest(currentRecastSchedule),
-      schedule: currentRecastSchedule
+      effectivePayment: recastPayment,
+      totalInterest: calculateTotalInterest(currentRecastBaseSchedule),
+      totalPaid: calculateTotalPaid(currentRecastBaseSchedule),
+      monthsToPayoff: currentRecastBaseSchedule.length,
+      payoffDate: currentRecastBaseSchedule[currentRecastBaseSchedule.length - 1]?.date || '',
+      payoffLabel: formatDuration(currentRecastBaseSchedule.length),
+      interestSavingsVsCurrentBase: currentBase.totalInterest - calculateTotalInterest(currentRecastBaseSchedule),
+      interestSavingsVsCurrentExtra: currentExtra.totalInterest - calculateTotalInterest(currentRecastBaseSchedule),
+      schedule: currentRecastBaseSchedule
     };
-    scenarios.push(currentRecast);
+    scenarios.push(currentRecastBase);
+
+    // Recast (with extra) - with extra principal
+    if (currentLoan.extraMonthlyPrincipal > 0) {
+      const currentRecastExtraSchedule = generateSchedule({
+        startDate: currentLoan.currentDate,
+        startingBalance: currentLoan.principal,
+        annualRate: currentLoan.annualRate,
+        basePayment: currentLoan.monthlyPayment,
+        extraMonthlyPrincipal: currentLoan.extraMonthlyPrincipal,
+        lumpSums: lumpSums,
+        recastDate: paymentSettings.recastDate,
+        termMonths: remainingMonths
+      });
+
+      const currentRecastExtra: ScenarioResult = {
+        id: 'current-recast-extra',
+        label: 'Current + recast (with extra)',
+        basePayment: recastPayment,
+        effectivePayment: recastPayment + currentLoan.extraMonthlyPrincipal,
+        totalInterest: calculateTotalInterest(currentRecastExtraSchedule),
+        totalPaid: calculateTotalPaid(currentRecastExtraSchedule),
+        monthsToPayoff: currentRecastExtraSchedule.length,
+        payoffDate: currentRecastExtraSchedule[currentRecastExtraSchedule.length - 1]?.date || '',
+        payoffLabel: formatDuration(currentRecastExtraSchedule.length),
+        interestSavingsVsCurrentBase: currentBase.totalInterest - calculateTotalInterest(currentRecastExtraSchedule),
+        interestSavingsVsCurrentExtra: currentExtra.totalInterest - calculateTotalInterest(currentRecastExtraSchedule),
+        schedule: currentRecastExtraSchedule
+      };
+      scenarios.push(currentRecastExtra);
+    }
   }
 
   // Refinance scenarios
