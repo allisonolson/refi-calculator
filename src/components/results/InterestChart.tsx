@@ -46,14 +46,15 @@ export function InterestChart({ scenarios, hiddenScenarioIds }: InterestChartPro
   for (let period = 0; period <= maxPeriods; period += 6) { // Sample every 6 months
     const point: any = { period };
 
-    scenarios.forEach((scenario) => {
+    scenarios.forEach((scenario, index) => {
       const upToPeriod = Math.min(period, scenario.schedule.length - 1);
       const cumulativeInterest = scenario.schedule
         .slice(0, upToPeriod + 1)
         .reduce((sum, row) => sum + row.interest, 0);
 
       point[scenario.id] = cumulativeInterest;
-      if (scenario.schedule[upToPeriod]) {
+      // Only set the date from the first scenario to avoid inconsistent dates
+      if (index === 0 && scenario.schedule[upToPeriod]) {
         point.date = scenario.schedule[upToPeriod].date;
       }
     });
