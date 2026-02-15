@@ -1,9 +1,8 @@
 import type { PaymentSettings } from '../../types/mortgage';
-import { Stack, Box, Text } from '@chakra-ui/react';
+import { Stack, Box } from '@chakra-ui/react';
 import { Field } from '@chakra-ui/react';
 import { Input } from '@chakra-ui/react';
 import { Checkbox } from '@chakra-ui/react';
-import { CurrencyInput } from '../ui/CurrencyInput';
 import { Card } from '../ui/Card';
 import { addMonths, format } from 'date-fns';
 
@@ -28,10 +27,6 @@ export function PaymentSettingsComponent({ values, onChange }: PaymentSettingsPr
 
   function handleRecastDateChange(date: string) {
     onChange({ ...values, recastDate: date });
-  }
-
-  function handleDesiredPaymentChange(amount: number) {
-    onChange({ ...values, desiredMonthlyPayment: amount });
   }
 
   function handleLoanMaturityDateChange(date: string) {
@@ -74,15 +69,6 @@ export function PaymentSettingsComponent({ values, onChange }: PaymentSettingsPr
             </Field.Root>
           </Box>
         )}
-
-        <CurrencyInput
-          label="Desired Monthly Payment (global default)"
-          value={values.desiredMonthlyPayment || 0}
-          onChange={handleDesiredPaymentChange}
-        />
-        <Text fontSize="xs" color="fg.muted" mt={-2}>
-          Global default for matched payment scenarios. Can be overridden per refinance option.
-        </Text>
       </Stack>
     </Card>
   );

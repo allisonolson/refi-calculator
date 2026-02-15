@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import type { CalculatorInputs, ScenarioResult } from '../types/mortgage';
 import { computeAllScenarios } from '../calc/scenarios';
 import { format } from 'date-fns';
-import pako from 'pako';
+import { encodeToHash, decodeFromHash } from '../utils/urlEncoding';
 
 function getDefaultInputs(): CalculatorInputs {
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -22,40 +22,13 @@ function getDefaultInputs(): CalculatorInputs {
 }
 
 function parseInputsFromHash(): CalculatorInputs | null {
-  try {
-    const hash = window.location.hash.slice(1); // Remove leading '#'
-    if (!hash) return null;
-
-    // Decode base64
-    const compressedData = Uint8Array.from(atob(hash), c => c.charCodeAt(0));
-
-    // Decompress using pako
-    const decompressed = pako.inflate(compressedData, { to: 'string' });
-
-    const parsed = JSON.parse(decompressed);
-
-    // Validate that it has the expected shape
-    if (!parsed || typeof parsed !== 'object' || !parsed.currentLoan) {
-      return null;
-    }
-
-    return parsed as CalculatorInputs;
-  } catch (error) {
-    // Invalid hash, corrupted data, or parse error - fail silently
-    return null;
-  }
+  const hash = window.location.hash.slice(1); // Remove leading '#'
+  return decodeFromHash(hash);
 }
 
 function writeInputsToHash(inputs: CalculatorInputs): void {
   try {
-    const json = JSON.stringify(inputs);
-
-    // Compress using pako (gzip)
-    const compressed = pako.deflate(json);
-
-    // Convert to base64
-    const hash = btoa(String.fromCharCode(...compressed));
-
+    const hash = encodeToHash(inputs);
     window.history.replaceState(null, '', '#' + hash);
   } catch (error) {
     console.error('Failed to write inputs to hash:', error);
