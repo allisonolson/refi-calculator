@@ -31,7 +31,15 @@ export function generateSchedule(config: AmortizationConfig): AmortizationRow[] 
   const schedule: AmortizationRow[] = [];
 
   let balance = startingBalance;
-  let currentDate = parseISO(startDate);
+  // Normalize to the 1st of the next month (since current month's payment has already been made)
+  const startDateParsed = parseISO(startDate);
+  let currentDate = new Date(startDateParsed.getFullYear(), startDateParsed.getMonth(), 1);
+
+  // If current date is after the 1st, move to next month
+  if (startDateParsed.getDate() > 1) {
+    currentDate = addMonths(currentDate, 1);
+  }
+
   let period = 0;
   let hasRecast = false; // Track whether we've already recast
 
@@ -40,14 +48,27 @@ export function generateSchedule(config: AmortizationConfig): AmortizationRow[] 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
+  // Track which lump sums have been applied
+  const appliedLumpSums = new Set<string>();
+
   while (balance > 0.01 && period < maxMonths) {
     period++;
     const dateStr = format(currentDate, 'yyyy-MM-dd');
     const beginBalance = balance;
 
-    // Check for lump sum this month
-    const lumpSumThisMonth = sortedLumpSums.find(ls => ls.date === dateStr);
-    const lumpSumApplied = lumpSumThisMonth ? lumpSumThisMonth.amount : 0;
+    // Check for lump sums - apply any lump sums that occur before this payment
+    // and haven't been applied yet
+    let lumpSumApplied = 0;
+    for (const ls of sortedLumpSums) {
+      if (appliedLumpSums.has(ls.id)) continue;
+
+      const lumpDate = parseISO(ls.date);
+      // Apply lump sum if it's dated before or during this payment period
+      if (lumpDate < currentDate) {
+        lumpSumApplied += ls.amount;
+        appliedLumpSums.add(ls.id);
+      }
+    }
 
     // Apply lump sum to principal first
     balance -= lumpSumApplied;
@@ -58,11 +79,19 @@ export function generateSchedule(config: AmortizationConfig): AmortizationRow[] 
     const interest = balance * monthlyRate;
 
     // Check for recast - trigger on the first period on or after the recast date
-    if (recastDate && !hasRecast && dateStr >= recastDate && termMonths) {
-      // Recalculate base payment based on remaining balance and term
-      const remainingMonths = termMonths - period + 1;
-      basePayment = calcMonthlyPayment(balance, monthlyRate, remainingMonths);
-      hasRecast = true; // Mark that we've recast to prevent recasting again
+    if (recastDate && !hasRecast && termMonths) {
+      const recastDateTime = parseISO(recastDate);
+      // Recast if this period's month/year is >= recast date's month/year
+      const shouldRecast = currentDate.getFullYear() > recastDateTime.getFullYear() ||
+        (currentDate.getFullYear() === recastDateTime.getFullYear() &&
+         currentDate.getMonth() >= recastDateTime.getMonth());
+
+      if (shouldRecast) {
+        // Recalculate base payment based on remaining balance and term
+        const remainingMonths = termMonths - period + 1;
+        basePayment = calcMonthlyPayment(balance, monthlyRate, remainingMonths);
+        hasRecast = true; // Mark that we've recast to prevent recasting again
+      }
     }
 
     // Calculate total payment
