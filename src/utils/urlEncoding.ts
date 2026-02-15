@@ -1,10 +1,23 @@
 import pako from 'pako';
-import type { CalculatorInputs, LumpSum, RefinanceOption } from '../types/mortgage';
+import type { CalculatorInputs } from '../types/mortgage';
 
 /**
  * Compact field names mapping for URL encoding
  * Using short keys dramatically reduces JSON size
  */
+interface CompactLumpSum {
+  a: number;   // amount
+  d: string;   // date
+}
+
+interface CompactRefiOption {
+  l: string;   // label
+  t: number;   // termYears
+  r: number;   // annualRate
+  s: string;   // startDate
+  p?: number;  // desiredMonthlyPayment (optional)
+}
+
 interface CompactData {
   c: {           // currentLoan
     d: string;   // currentDate
@@ -13,17 +26,8 @@ interface CompactData {
     m: number;   // monthlyPayment
     e?: number;  // extraMonthlyPrincipal (optional)
   };
-  l?: Array<{    // lumpSums (optional if empty)
-    a: number;   // amount
-    d: string;   // date
-  }>;
-  o?: Array<{    // refinanceOptions (optional if empty) - changed from 'r' to 'o' to avoid conflict
-    l: string;   // label
-    t: number;   // termYears
-    r: number;   // annualRate
-    s: string;   // startDate
-    p?: number;  // desiredMonthlyPayment (optional)
-  }>;
+  l?: CompactLumpSum[];    // lumpSums (optional if empty)
+  o?: CompactRefiOption[]; // refinanceOptions (optional if empty)
   s?: {          // paymentSettings (optional if empty)
     r?: string;  // recastDate
     m?: string;  // loanMaturityDate
@@ -59,7 +63,7 @@ function toCompact(inputs: CalculatorInputs): CompactData {
   // Only include refinanceOptions if not empty
   if (inputs.refinanceOptions.length > 0) {
     compact.o = inputs.refinanceOptions.map(refi => {
-      const o: CompactData['o'][0] = {
+      const o: CompactRefiOption = {
         l: refi.label,
         t: refi.termYears,
         r: refi.annualRate,
