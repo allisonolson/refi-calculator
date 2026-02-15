@@ -33,6 +33,7 @@ export function generateSchedule(config: AmortizationConfig): AmortizationRow[] 
   let balance = startingBalance;
   let currentDate = parseISO(startDate);
   let period = 0;
+  let hasRecast = false; // Track whether we've already recast
 
   // Sort lump sums by date for efficient lookup
   const sortedLumpSums = [...lumpSums].sort((a, b) =>
@@ -44,9 +45,6 @@ export function generateSchedule(config: AmortizationConfig): AmortizationRow[] 
     const dateStr = format(currentDate, 'yyyy-MM-dd');
     const beginBalance = balance;
 
-    // Calculate interest
-    const interest = balance * monthlyRate;
-
     // Check for lump sum this month
     const lumpSumThisMonth = sortedLumpSums.find(ls => ls.date === dateStr);
     const lumpSumApplied = lumpSumThisMonth ? lumpSumThisMonth.amount : 0;
@@ -54,11 +52,17 @@ export function generateSchedule(config: AmortizationConfig): AmortizationRow[] 
     // Apply lump sum to principal first
     balance -= lumpSumApplied;
 
-    // Check for recast
-    if (recastDate && dateStr === recastDate && termMonths) {
+    // Calculate interest AFTER applying lump sum
+    // This ensures that when recast happens on the same day as lump sum,
+    // interest is calculated on the reduced balance
+    const interest = balance * monthlyRate;
+
+    // Check for recast - trigger on the first period on or after the recast date
+    if (recastDate && !hasRecast && dateStr >= recastDate && termMonths) {
       // Recalculate base payment based on remaining balance and term
       const remainingMonths = termMonths - period + 1;
       basePayment = calcMonthlyPayment(balance, monthlyRate, remainingMonths);
+      hasRecast = true; // Mark that we've recast to prevent recasting again
     }
 
     // Calculate total payment
