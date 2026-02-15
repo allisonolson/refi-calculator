@@ -4,7 +4,6 @@ export interface CurrentLoanInputs {
   annualRate: number;              // e.g., 6.625 (percent)
   monthlyPayment: number;         // required payment
   extraMonthlyPrincipal: number;  // additional principal/month
-  loanEndDate: string;            // maturity date
 }
 
 export interface LumpSum {
@@ -24,6 +23,7 @@ export interface RefinanceOption {
 
 export interface PaymentSettings {
   recastDate?: string;            // optional YYYY-MM-DD
+  loanMaturityDate?: string;      // optional YYYY-MM-DD, used for recast term calculation
   desiredMonthlyPayment?: number; // optional target payment
 }
 

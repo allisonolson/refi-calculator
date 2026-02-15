@@ -1,5 +1,5 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, differenceInMonths } from 'date-fns';
+import { format, differenceInMonths, addMonths, parseISO } from 'date-fns';
 import { Box } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import type { ScenarioResult } from '../../types/mortgage';
@@ -41,23 +41,28 @@ export function BalanceChart({ scenarios, hiddenScenarioIds }: BalanceChartProps
   // Find the longest schedule to determine chart length
   const maxPeriods = Math.max(...scenarios.map(s => s.schedule.length));
 
+  // Get start date from first scenario
+  const startDate = scenarios[0]?.schedule[0]?.date
+    ? parseISO(scenarios[0].schedule[0].date)
+    : new Date();
+
   // Build data points for chart
   const data: any[] = [];
   for (let period = 0; period <= maxPeriods; period += 6) { // Sample every 6 months
     const point: any = { period };
 
+    // Calculate date based on start date and period (months elapsed)
+    point.date = format(addMonths(startDate, period), 'yyyy-MM-dd');
+
     scenarios.forEach((scenario) => {
       const row = scenario.schedule[period] || scenario.schedule[scenario.schedule.length - 1];
       if (row) {
         point[scenario.id] = row.endBalance;
-        point.date = row.date;
       }
     });
 
     data.push(point);
   }
-
-  const startDate = data[0]?.date ? new Date(data[0].date) : new Date();
 
   return (
     <Box w="full" h="96">

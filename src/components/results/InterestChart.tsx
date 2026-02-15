@@ -1,5 +1,5 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { format, differenceInMonths } from 'date-fns';
+import { format, differenceInMonths, addMonths, parseISO } from 'date-fns';
 import { Box } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 import type { ScenarioResult } from '../../types/mortgage';
@@ -41,28 +41,30 @@ export function InterestChart({ scenarios, hiddenScenarioIds }: InterestChartPro
   // Find the longest schedule to determine chart length
   const maxPeriods = Math.max(...scenarios.map(s => s.schedule.length));
 
+  // Get start date from first scenario
+  const startDate = scenarios[0]?.schedule[0]?.date
+    ? parseISO(scenarios[0].schedule[0].date)
+    : new Date();
+
   // Build cumulative interest data points
   const data: any[] = [];
   for (let period = 0; period <= maxPeriods; period += 6) { // Sample every 6 months
     const point: any = { period };
 
-    scenarios.forEach((scenario, index) => {
+    // Calculate date based on start date and period (months elapsed)
+    point.date = format(addMonths(startDate, period), 'yyyy-MM-dd');
+
+    scenarios.forEach((scenario) => {
       const upToPeriod = Math.min(period, scenario.schedule.length - 1);
       const cumulativeInterest = scenario.schedule
         .slice(0, upToPeriod + 1)
         .reduce((sum, row) => sum + row.interest, 0);
 
       point[scenario.id] = cumulativeInterest;
-      // Only set the date from the first scenario to avoid inconsistent dates
-      if (index === 0 && scenario.schedule[upToPeriod]) {
-        point.date = scenario.schedule[upToPeriod].date;
-      }
     });
 
     data.push(point);
   }
-
-  const startDate = data[0]?.date ? new Date(data[0].date) : new Date();
 
   return (
     <Box w="full" h="96">

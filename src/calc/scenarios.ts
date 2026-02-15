@@ -7,18 +7,27 @@ import {
   calculateTotalInterest,
   calculateTotalPaid
 } from './amortization';
-import { formatDuration, calcMonthlyPayment, annualToMonthlyRate } from './formulas';
+import { formatDuration, calcMonthlyPayment, annualToMonthlyRate, calcMonthsToPayoff } from './formulas';
 import { differenceInMonths, parseISO } from 'date-fns';
 
 export function computeAllScenarios(inputs: CalculatorInputs): ScenarioResult[] {
   const scenarios: ScenarioResult[] = [];
   const { currentLoan, lumpSums, refinanceOptions, paymentSettings } = inputs;
 
-  // Calculate remaining term for current loan
-  const remainingMonths = differenceInMonths(
-    parseISO(currentLoan.loanEndDate),
-    parseISO(currentLoan.currentDate)
-  );
+  const monthlyRate = annualToMonthlyRate(currentLoan.annualRate);
+
+  // For recast scenarios, use the loan maturity date if provided
+  // Otherwise, calculate remaining term based on balance, rate, and payment
+  const remainingMonths = paymentSettings.loanMaturityDate
+    ? differenceInMonths(
+        parseISO(paymentSettings.loanMaturityDate),
+        parseISO(currentLoan.currentDate)
+      )
+    : calcMonthsToPayoff(
+        currentLoan.principal,
+        monthlyRate,
+        currentLoan.monthlyPayment
+      );
 
   // Scenario 1: Current (base) - minimum payment only
   const currentBaseSchedule = generateSchedule({
@@ -27,8 +36,7 @@ export function computeAllScenarios(inputs: CalculatorInputs): ScenarioResult[] 
     annualRate: currentLoan.annualRate,
     basePayment: currentLoan.monthlyPayment,
     extraMonthlyPrincipal: 0,
-    lumpSums: [],
-    termMonths: remainingMonths
+    lumpSums: []
   });
 
   const currentBase: ScenarioResult = {
@@ -54,8 +62,7 @@ export function computeAllScenarios(inputs: CalculatorInputs): ScenarioResult[] 
     annualRate: currentLoan.annualRate,
     basePayment: currentLoan.monthlyPayment,
     extraMonthlyPrincipal: currentLoan.extraMonthlyPrincipal,
-    lumpSums: lumpSums,
-    termMonths: remainingMonths
+    lumpSums: lumpSums
   });
 
   const currentExtra: ScenarioResult = {
@@ -124,7 +131,6 @@ export function computeAllScenarios(inputs: CalculatorInputs): ScenarioResult[] 
       basePayment: currentLoan.monthlyPayment,
       extraMonthlyPrincipal: currentLoan.extraMonthlyPrincipal,
       lumpSums: lumpsBeforeRefi,
-      termMonths: remainingMonths,
       maxMonths: differenceInMonths(parseISO(refi.startDate), parseISO(currentLoan.currentDate))
     });
 

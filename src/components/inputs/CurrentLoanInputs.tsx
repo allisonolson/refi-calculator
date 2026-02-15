@@ -54,15 +54,6 @@ export function CurrentLoanInputsComponent({ values, onChange }: CurrentLoanInpu
           value={values.extraMonthlyPrincipal}
           onChange={(v) => handleChange('extraMonthlyPrincipal', v)}
         />
-
-        <Field.Root required>
-          <Field.Label>Loan Maturity Date</Field.Label>
-          <Input
-            type="date"
-            value={values.loanEndDate}
-            onChange={(e) => handleChange('loanEndDate', e.target.value)}
-          />
-        </Field.Root>
       </Stack>
     </Card>
   );

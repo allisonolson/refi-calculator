@@ -1,11 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import type { CalculatorInputs, ScenarioResult } from '../types/mortgage';
 import { computeAllScenarios } from '../calc/scenarios';
-import { addMonths, format } from 'date-fns';
+import { format } from 'date-fns';
 
 function getDefaultInputs(): CalculatorInputs {
   const today = format(new Date(), 'yyyy-MM-dd');
-  const loanEndDate = format(addMonths(new Date(), 300), 'yyyy-MM-dd'); // ~25 years
 
   return {
     currentLoan: {
@@ -13,8 +12,7 @@ function getDefaultInputs(): CalculatorInputs {
       principal: 500000,
       annualRate: 6.625,
       monthlyPayment: 3200,
-      extraMonthlyPrincipal: 0,
-      loanEndDate
+      extraMonthlyPrincipal: 0
     },
     lumpSums: [],
     refinanceOptions: [],
