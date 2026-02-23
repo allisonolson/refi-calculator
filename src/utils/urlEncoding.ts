@@ -1,5 +1,6 @@
 import pako from 'pako';
 import type { CalculatorInputs } from '../types/mortgage';
+import { CURRENT_VERSION, migrateCompactData } from './urlMigrations';
 
 /**
  * Compact field names mapping for URL encoding
@@ -19,6 +20,7 @@ interface CompactRefiOption {
 }
 
 interface CompactData {
+  v?: number;    // version (for backward compatibility)
   c: {           // currentLoan
     d: string;   // currentDate
     p: number;   // principal
@@ -157,7 +159,9 @@ function base64urlDecode(str: string): Uint8Array {
 export function encodeToHash(inputs: CalculatorInputs): string {
   try {
     const compact = toCompact(inputs);
-    const json = JSON.stringify(compact);
+    // Stamp with current version before serialization
+    const versioned = { ...compact, v: CURRENT_VERSION };
+    const json = JSON.stringify(versioned);
     const compressed = pako.deflate(json);
     return base64urlEncode(compressed);
   } catch (error) {
@@ -175,16 +179,19 @@ export function decodeFromHash(hash: string): CalculatorInputs | null {
 
     const compressedData = base64urlDecode(hash);
     const decompressed = pako.inflate(compressedData, { to: 'string' });
-    const compact = JSON.parse(decompressed) as CompactData;
+    const raw = JSON.parse(decompressed) as Record<string, unknown>;
 
-    // Validate structure
-    if (!compact || typeof compact !== 'object' || !compact.c) {
+    // Validate basic structure before migration
+    if (!raw || typeof raw !== 'object' || !raw.c) {
       return null;
     }
 
-    return fromCompact(compact);
+    // Migrate to current version (handles old formats)
+    const migrated = migrateCompactData(raw);
+
+    return fromCompact(migrated as unknown as CompactData);
   } catch (error) {
-    // Invalid hash, corrupted data, or parse error - fail silently
+    // Invalid hash, corrupted data, parse error, or migration failure - fail silently
     return null;
   }
 }
