@@ -55,7 +55,35 @@ export function computeAllScenarios(inputs: CalculatorInputs): ScenarioResult[] 
   };
   scenarios.push(currentBase);
 
-  // Scenario 2: Current (with extra) - with extra payments and lump sums
+  // Scenario 2: Current (with lump sums) - base payment + lump sums, no extra
+  if (lumpSums.length > 0) {
+    const currentLumpSchedule = generateSchedule({
+      startDate: currentLoan.currentDate,
+      startingBalance: currentLoan.principal,
+      annualRate: currentLoan.annualRate,
+      basePayment: currentLoan.monthlyPayment,
+      extraMonthlyPrincipal: 0,
+      lumpSums: lumpSums
+    });
+
+    const currentLump: ScenarioResult = {
+      id: 'current-lump',
+      label: 'Current (with lump sums)',
+      basePayment: currentLoan.monthlyPayment,
+      effectivePayment: currentLoan.monthlyPayment,
+      totalInterest: calculateTotalInterest(currentLumpSchedule),
+      totalPaid: calculateTotalPaid(currentLumpSchedule),
+      monthsToPayoff: currentLumpSchedule.length,
+      payoffDate: currentLumpSchedule[currentLumpSchedule.length - 1]?.date || '',
+      payoffLabel: formatDuration(currentLumpSchedule.length),
+      interestSavingsVsCurrentBase: currentBase.totalInterest - calculateTotalInterest(currentLumpSchedule),
+      interestSavingsVsCurrentExtra: 0, // Will be calculated relative to this scenario
+      schedule: currentLumpSchedule
+    };
+    scenarios.push(currentLump);
+  }
+
+  // Scenario 3: Current (with extra) - with extra payments and lump sums
   const currentExtraSchedule = generateSchedule({
     startDate: currentLoan.currentDate,
     startingBalance: currentLoan.principal,
